@@ -1,0 +1,19 @@
+language: php
+
+php:
+  - '7.1'
+  - nightly
+  - hhvm
+
+matrix:
+  allow_failures:
+    - php: hhvm
+
+install:
+  - composer install
+
+script:
+    - vendor/bin/phpunit --coverage-clover=coverage.xml --whitelist ./src
+
+after_success:
+    - bash <(curl -s https://codecov.io/bash)

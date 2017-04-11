@@ -1,0 +1,7 @@
+<phpunit bootstrap="vendor/autoload.php" beStrictAboutTestsThatDoNotTestAnything="true">
+    <testsuites>
+        <testsuite name="hive-foundation">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

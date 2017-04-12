@@ -68,6 +68,10 @@ class DeclarativeHiveNode extends HiveNode implements DeclarationAwareInterface
     {
         if ( array_key_exists($token, $this->declarations) ) {
             $value = $this->callDeclarationCallback($this->declarations[$token], $value);
+
+            $this->update(static::DECLARATION_STAGE, function(HiveObservationContainer $container) use ($token, $value) {
+                $container->withContextData(compact('token', 'value'));
+            });
         }
 
         return parent::cover($token, $value);

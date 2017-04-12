@@ -14,6 +14,11 @@ namespace Subcosm\Hive;
 interface DeclarationAwareInterface
 {
     /**
+     * issued after the declaration has been applied to a value.
+     */
+    const DECLARATION_STAGE = 'stage:declare';
+
+    /**
      * declares the validation for the provided entity.
      *
      * @param string $entity

@@ -11,9 +11,10 @@
 namespace Subcosm\Hive\Container;
 
 
+use Subcosm\Hive\HiveObservationInterface;
 use Subcosm\Observatory\AbstractObservationContainer;
 
-class HiveObservationContainer extends AbstractObservationContainer
+class HiveObservationContainer extends AbstractObservationContainer implements HiveObservationInterface
 {
     protected $contextualStageData;
 

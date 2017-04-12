@@ -17,11 +17,26 @@ use Subcosm\Observatory\ObserverQueue;
 
 interface HiveInterface extends ContainerInterface, ObservableInterface
 {
+    /**
+     * issued when a value had been successfully resolved.
+     */
     const GET_STAGE = 'stage:get';
+
+    /**
+     * issued when a value had been successfully stored.
+     */
     const SET_STAGE = 'stage:set';
+
+    /**
+     * issued when a node has been successfully established, will not issued when a node has been stored with set().
+     */
     const NODE_STAGE = 'stage:node';
+
+    /**
+     * issued when a node has been stored with set(), will not issued when a node has been created with node().
+     */
     const SET_NODE_STAGE = 'stage:set:node';
-    
+
     /**
      * gets the queried entity.
      *

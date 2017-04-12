@@ -12,9 +12,16 @@ namespace Subcosm\Hive;
 
 
 use Psr\Container\ContainerInterface;
+use Subcosm\Observatory\ObservableInterface;
+use Subcosm\Observatory\ObserverQueue;
 
-interface HiveInterface extends ContainerInterface
+interface HiveInterface extends ContainerInterface, ObservableInterface
 {
+    const GET_STAGE = 'stage:get';
+    const SET_STAGE = 'stage:set';
+    const NODE_STAGE = 'stage:node';
+    const SET_NODE_STAGE = 'stage:set:node';
+    
     /**
      * gets the queried entity.
      *
@@ -122,4 +129,19 @@ interface HiveInterface extends ContainerInterface
      * @return null|string
      */
     public function getPath(): ? string;
+
+    /**
+     * assigns a observer queue to the current container.
+     *
+     * @param ObserverQueue $observers
+     * @return HiveInterface
+     */
+    public function withObservers(ObserverQueue $observers): HiveInterface;
+
+    /**
+     * returns the observers queue.
+     *
+     * @return ObserverQueue|null
+     */
+    public function getObservers(): ? ObserverQueue;
 }

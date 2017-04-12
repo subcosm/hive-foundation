@@ -25,5 +25,5 @@ interface DeclarationAwareInterface
      * @param callable $callback
      * @return void
      */
-    public function declare(string $entity, callable $callback): void;
+    public function entity(string $entity, callable $callback): void;
 }

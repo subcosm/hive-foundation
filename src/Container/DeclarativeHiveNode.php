@@ -13,6 +13,7 @@ namespace Subcosm\Hive\Container;
 
 use Subcosm\Hive\DeclarationAwareInterface;
 use Subcosm\Hive\Exception\HiveException;
+use Subcosm\Hive\Exception\UnknownEntityException;
 
 /**
  * Class DeclarativeHiveNode
@@ -33,28 +34,36 @@ class DeclarativeHiveNode extends HiveNode implements DeclarationAwareInterface
      * @throws HiveException on a root assignment attempt
      * @return void
      */
-    public function declare(string $entity, callable $callback): void
+    public function entity(string $entity, callable $callback): void
     {
-        $inspectionData = $this->marshalNodeQuery($entity);
+        $query = $this->marshalNodeQuery($entity);
 
-        ['token' => $token, 'query' => $query, 'root' => $isRoot] = $inspectionData;
-
-        if ( $isRoot ) {
-            throw new HiveException('You can not assign declarations delegated to the root container');
+        if ( $query->isEmpty() ) {
+            throw new UnknownEntityException('Can not operate on empty queries');
         }
 
-        if ( $query !== null ) {
-            $targetNode = $this->node($query, true);
+        if ( $query->callsRoot ) {
+            $this->getRoot()->entity($query->rootlessQuery, $callback);
 
-            if ( ! $targetNode instanceof DeclarationAwareInterface ) {
-                throw new HiveException('Target not is not aware of declarations');
-            }
-
-            $targetNode->declare($token, $callback);
             return;
         }
 
-        $this->declarations[$token] = $callback;
+        if ( $query->tokenCount > 2 ) {
+            $this
+                ->node($query->firstToken.$this->getQueryDivider().$query->segmentedQuery, true)
+                ->entity($query->lastToken, $callback)
+            ;
+
+            return;
+        }
+
+        if ( $query->tokenCount > 1 ) {
+            $this->node($query->firstToken, true)->entity($query->lastToken, $callback);
+
+            return;
+        }
+
+        $this->declarations[$query->firstToken] = $callback;
     }
 
     /**

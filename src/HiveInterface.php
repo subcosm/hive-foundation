@@ -12,6 +12,7 @@ namespace Subcosm\Hive;
 
 
 use Psr\Container\ContainerInterface;
+use Closure;
 use Subcosm\Observatory\ObservableInterface;
 use Subcosm\Observatory\ObserverQueue;
 
@@ -125,13 +126,6 @@ interface HiveInterface extends ContainerInterface, ObservableInterface
     public function getRootIdentifier(): string;
 
     /**
-     * returns the minimum class level accepted by set when nodes are about to set to a entity key.
-     *
-     * @return string
-     */
-    public function getMinimumClassLevel(): string;
-
-    /**
      * returns the name of the node (or null when the current node is the root node).
      *
      * @return null|string
@@ -159,4 +153,12 @@ interface HiveInterface extends ContainerInterface, ObservableInterface
      * @return ObserverQueue|null
      */
     public function getObservers(): ? ObserverQueue;
+
+    /**
+     * wraps a closure into a closure to guarantee that a closure will be returned.
+     *
+     * @param Closure $closure
+     * @return Closure
+     */
+    public function secure(Closure $closure): \Closure;
 }

@@ -11,6 +11,7 @@
 namespace Subcosm\Hive\Container;
 
 
+use Subcosm\Hive\Exception\HiveException;
 use Subcosm\Hive\HiveIdentityInterface;
 use Subcosm\Hive\HiveInterface;
 
@@ -33,11 +34,16 @@ class HiveIdentity implements HiveIdentityInterface
      * HiveIdentity constructor.
      * @param HiveInterface $node
      * @param string $name
+     * @throws HiveException when the $name parameter results into a empty string
      */
     public function __construct(HiveInterface $node, string $name)
     {
+        if ( empty(trim($name)) ) {
+            throw new HiveException('Hive node name can not be empty');
+        }
+
         $this->node = $node;
-        $this->name = $name;
+        $this->name = trim($name);
     }
 
     /**
@@ -47,7 +53,7 @@ class HiveIdentity implements HiveIdentityInterface
      */
     public function getParentNode(): HiveInterface
     {
-        // TODO: Implement getParentNode() method.
+        return $this->node;
     }
 
     /**
@@ -57,7 +63,7 @@ class HiveIdentity implements HiveIdentityInterface
      */
     public function getName(): string
     {
-        // TODO: Implement getName() method.
+        return $this->name;
     }
 
 }

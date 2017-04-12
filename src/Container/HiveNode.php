@@ -11,6 +11,7 @@
 namespace Subcosm\Hive\Container;
 
 
+use Closure;
 use Subcosm\Hive\Exception\IncompatibleInstanceException;
 use Subcosm\Hive\Exception\UnknownEntityException;
 use Subcosm\Hive\HiveIdentityInterface;
@@ -54,7 +55,8 @@ class HiveNode implements HiveInterface
     {
         $this->parent = $parent instanceof HiveIdentityInterface ? $parent->getParentNode() : null;
         $this->name = $parent instanceof HiveIdentityInterface ? $parent->getName() : null;
-        $this->observers = $observers;
+
+        $this->withObservers($observers ?? new ObserverQueue());
     }
 
     /**
@@ -66,51 +68,71 @@ class HiveNode implements HiveInterface
      */
     public function get($entity)
     {
-        [$token, $query] = $this->marshalPartialQuery((string)$entity)['firstBank'];
+        $query = $this->marshalNodeQuery((string) $entity);
 
-        if ( ! array_key_exists($token, $this->values) ) {
-            throw new UnknownEntityException('Entity not found: '.$token);
+        if ( $query->isEmpty() ) {
+            throw new UnknownEntityException('Can not operate on empty queries');
         }
 
-        if (null === $query) {
-            $resolvedValue = $this->values[$token];
-
-            $this->update(static::GET_STAGE, function(HiveObservationContainer $container) use ($resolvedValue) {
-                $container->withContextData([
-                    'value' => $resolvedValue,
-                ]);
-            });
-
-            return $resolvedValue;
+        if ( $query->callsRoot ) {
+            return $this->getRoot()->get($query->rootlessQuery);
         }
 
-        if ( ! array_key_exists($token, $this->nodes) ) {
-            throw new UnknownEntityException('Node not found: '.$token);
+        if ( $query->tokenCount > 1 && array_key_exists($query->firstToken, $this->nodes) ) {
+            return $this->nodes[$query->firstToken]->get($query->query);
         }
 
-        try {
-            return $this->nodes[$token]->get($query);
+        if ( $query->tokenCount > 1 && ! array_key_exists($query->firstToken, $this->nodes) ) {
+            throw new UnknownEntityException('Unknown node: '.$query->firstToken);
         }
-        catch (UnknownEntityException $exception) {
-            throw new UnknownEntityException('query path not found: '.$entity, 0, $exception);
+
+        if ( ! array_key_exists($query->firstToken, $this->values) ) {
+            throw new UnknownEntityException('Unknown value key: '.$query->firstToken);
         }
+
+        $resolvedValue = $this->values[$query->firstToken];
+
+        if ( $resolvedValue instanceof Closure ) {
+            $resolvedValue = $this->executeClosure($resolvedValue);
+        }
+
+        $this->update(static::GET_STAGE, function(HiveObservationContainer $container) use ($resolvedValue) {
+            $container->withContextData([
+                'value' => $resolvedValue,
+            ]);
+        });
+
+        return $resolvedValue;
     }
 
     /**
      * Checks whether the provided entity is known or not.
      *
      * @param string $entity
+     * @throws UnknownEntityException
      * @return bool
      */
     public function has($entity)
     {
-        [$token, $query] = $this->marshalPartialQuery((string) $entity)['firstBank'];
+        $query = $this->marshalNodeQuery((string) $entity);
 
-        if ( null === $query ) {
-            return array_key_exists($token, $this->values);
+        if ( $query->isEmpty() ) {
+            throw new UnknownEntityException('Can not operate on empty queries');
         }
 
-        return array_key_exists($token, $this->nodes) ? $this->nodes[$token]->has($query) : false;
+        if ( $query->callsRoot ) {
+            return $this->getRoot()->has($query->rootlessQuery);
+        }
+
+        if ( $query->tokenCount > 2 ) {
+            return $this->node($query->firstToken.$this->getQueryDivider().$query->segmentedQuery)->has($query->lastToken);
+        }
+
+        if ( $query->tokenCount > 1 ) {
+            return $this->node($query->firstToken)->has($query->lastToken);
+        }
+
+        return array_key_exists($query->firstToken, $this->values);
     }
 
     /**
@@ -118,32 +140,38 @@ class HiveNode implements HiveInterface
      *
      * @param string $entity
      * @param $value
-     * @throws IncompatibleInstanceException
+     * @throws IncompatibleInstanceException when the value operates with HiveInterface and does not met requirements
+     * @throws UnknownEntityException when the entity parameter is empty
      * @return mixed
      */
     public function set(string $entity, $value): void
     {
-        if ( $value instanceof HiveInterface && ! is_a($value, $this->getMinimumClassLevel()) ) {
-            throw new IncompatibleInstanceException(
-                'The provided value must be instance or subclass of: '.$this->getMinimumClassLevel()
-            );
+        $query = $this->marshalNodeQuery($entity);
+
+        if ( $query->isEmpty() ) {
+            throw new UnknownEntityException('Can not operate on empty queries');
         }
 
-        $inspectionData = $this->marshalNodeQuery($entity);
+        if ( $query->callsRoot ) {
+            $this->getRoot()->set($query->rootlessQuery, $value);
 
-        ['token' => $token, 'query' => $query, 'root' => $isRoot] = $inspectionData;
-
-        if ( $isRoot ) {
-            $this->getRoot()->set(join($this->getQueryDivider(), array_filter([$query, $token])), $value);
             return;
         }
 
-        if ( $query !== null ) {
-            $this->node($query, true)->set($token, $value);
+        if ( $query->tokenCount > 2 ) {
+            $this
+                ->node($query->firstToken.$this->getQueryDivider().$query->segmentedQuery, true)
+                ->set($query->lastToken, $value)
+            ;
+
             return;
         }
 
-        $this->values[$token] = $this->cover($token, $value);
+        if ( $query->tokenCount > 1 ) {
+            $this->node($query->firstToken, true )->set($query->lastToken, $value);
+        }
+
+        $this->values[$query->firstToken] = $this->cover($query->firstToken, $value);
     }
 
     /**
@@ -151,57 +179,33 @@ class HiveNode implements HiveInterface
      *
      * @param string $entity
      * @param bool $createIfNotExists
+     * @throws UnknownEntityException on empty queries
      * @return null|HiveInterface
      */
     public function node(string $entity, bool $createIfNotExists = false): ? HiveInterface
     {
-        $query = $this->marshalNodeKey($entity);
+        $query = $this->marshalNodeQuery($entity);
 
-        $query = 0 === strpos($query, $this->getRootIdentifier())
-            ? substr($query, strlen($this->getRootIdentifier()) - 1)
-            : $query
+        if ( $query->isEmpty() ) {
+            throw new UnknownEntityException('Can not use empty names for nodes');
+        }
+
+        if ( $query->callsRoot ) {
+            return $this->getRoot()->node($query->rootlessQuery);
+        }
+
+        if ( $createIfNotExists && ! array_key_exists($query->firstToken, $this->nodes) ) {
+            $this->nodes[$query->firstToken] = $this->marshalNodeInstance($this, $query->firstToken);
+        }
+
+        if ( ! $createIfNotExists && ! array_key_exists($query->firstToken, $this->nodes) ) {
+            return null;
+        }
+
+        return $query->query === null
+            ? $this->nodes[$query->firstToken]
+            : $this->nodes[$query->firstToken]->node($query->query, $createIfNotExists)
         ;
-
-        if ( 0 === strpos($query, $this->getRootIdentifier()) ) {
-            return $this->getRoot()->node($query);
-        }
-
-        if ( false !== strpos($query, $this->getQueryDivider()) && array_key_exists($query, $this->nodes) ) {
-            return $this->nodes[$query];
-        }
-
-        if (
-            false !== strpos($query, $this->getQueryDivider()) &&
-            ! array_key_exists($query, $this->nodes) &&
-            $createIfNotExists
-        ) {
-            return $this->nodes[$query] = $this->marshalNodeInstance($this);
-        }
-
-        if (
-            false !== strpos($query, $this->getQueryDivider()) &&
-            ! array_key_exists($query, $this->nodes) &&
-            ! $createIfNotExists
-        ) {
-            return null;
-        }
-
-        $current = strstr($query, $this->getQueryDivider(), true);
-
-        $forwardedQuery = ltrim(
-            strstr($query, $this->getQueryDivider(), false),
-            $this->getQueryDivider()
-        );
-
-        if ( ! array_key_exists($current, $this->nodes) && $createIfNotExists ) {
-            return $this->nodes[$query] = $this->marshalNodeInstance($this)->node($forwardedQuery);
-        }
-
-        if ( ! array_key_exists($current, $this->nodes) && ! $createIfNotExists ) {
-            return null;
-        }
-
-        return $this->nodes[$query]->node($forwardedQuery);
     }
 
     /**
@@ -230,8 +234,8 @@ class HiveNode implements HiveInterface
     {
         $instance = $this;
 
-        while ( $current = $this->getParent() ) {
-            $instance = $current;
+        while ( null !== $instance->getParent() ) {
+            $instance = $instance->getParent();
         }
 
         return $instance;
@@ -289,16 +293,6 @@ class HiveNode implements HiveInterface
     }
 
     /**
-     * returns the minimum class level accepted by set when nodes are about to set to a entity key.
-     *
-     * @return string
-     */
-    public function getMinimumClassLevel(): string
-    {
-        return get_called_class();
-    }
-
-    /**
      * returns the name of the node (or null when the current node is the root node).
      *
      * @return null|string
@@ -349,6 +343,8 @@ class HiveNode implements HiveInterface
     public function withObservers(ObserverQueue $observers): HiveInterface
     {
         $this->observers = $observers;
+
+        return $this;
     }
 
     /**
@@ -359,6 +355,19 @@ class HiveNode implements HiveInterface
     public function getObservers(): ? ObserverQueue
     {
         return $this->observers;
+    }
+
+    /**
+     * wraps a closure into a closure to guarantee that a closure will be returned.
+     *
+     * @param Closure $closure
+     * @return Closure
+     */
+    public function secure(Closure $closure): \Closure
+    {
+        return function() use ($closure) {
+            return $closure;
+        };
     }
 
     /**
@@ -379,45 +388,13 @@ class HiveNode implements HiveInterface
      * returns an inspection data array for the provided query, containing a root-flag, a token and the query part.
      *
      * @param string $query
-     * @return array
+     * @return HiveQuery
      */
-    protected function marshalNodeQuery(string $query): array
+    protected function marshalNodeQuery(string $query): HiveQuery
     {
         $normalizedQuery = $this->marshalNodeKey($query);
 
-        $root = false;
-
-        if ( 0 === strpos($normalizedQuery, $this->getRootIdentifier()) ) {
-            $root = true;
-            $normalizedQuery = substr($normalizedQuery, strlen($this->getRootIdentifier()) - 1);
-        }
-
-        $pattern = '~'.preg_quote($this->getQueryDivider()).'(?=[^'.$this->getQueryDivider().']*$)~';
-
-        list($query, $token) = preg_split($pattern, $normalizedQuery);
-
-        if ( $token === null ) {
-            $token = $query;
-            $query = null;
-        }
-
-        return compact('token', 'query', 'root');
-    }
-
-    /**
-     * returns an inspection data array for the provided query, containing all tokens and the first bank.
-     *
-     * @param string $query
-     * @return array
-     */
-    protected function marshalPartialQuery(string $query): array
-    {
-        $normalizedQuery = $this->marshalNodeKey($query);
-
-        $allTokens = explode($this->getQueryDivider(), $normalizedQuery);
-        $firstBank = explode($this->getQueryDivider(), $normalizedQuery, 1);
-
-        return compact('allTokens', 'firstBank');
+        return new HiveQuery($normalizedQuery, $this->getQueryDivider(), $this->getRootIdentifier());
     }
 
     /**
@@ -429,19 +406,11 @@ class HiveNode implements HiveInterface
      */
     protected function cover(string $token, $value)
     {
-        if ( $value instanceof HiveInterface ) {
-            $value->withObservers($this->getObservers());
-        }
+        $this->update(static::SET_STAGE, function(HiveObservationContainer $container) use ($token, $value) {
+            $container->withContextData(compact('token', 'value'));
+        });
 
-        $this->update(
-            $value instanceof HiveInterface ? static::SET_NODE_STAGE : static::SET_STAGE,
-            function(HiveObservationContainer $container) use ($token, $value)
-            {
-                $container->withContextData(compact('token', 'value'));
-            }
-        );
-
-        return $value instanceof HiveInterface ? new HiveIdentity($value, $token) : $value;
+        return $value;
     }
 
     /**
@@ -453,10 +422,11 @@ class HiveNode implements HiveInterface
     protected function marshalCurrentPath(string $token = null): string
     {
         $container = $this;
-        $stack = [$container->getName(), $token];
+        $stack = [$token];
 
-        while ( ! $container->getParent() ) {
+        while ( null !== $container->getParent() ) {
             array_unshift($stack, $container->getName());
+            $container = $container->getParent();
         }
 
         $path = join($this->getQueryDivider(), array_filter($stack));
@@ -474,10 +444,6 @@ class HiveNode implements HiveInterface
     {
         $key = strtolower($key);
 
-        if ( 0 === strpos($key, $this->getRootIdentifier()) ) {
-            return $this->getRootIdentifier().trim($key, $this->getQueryDivider().' ');
-        }
-
         return trim($key, $this->getQueryDivider().' ');
     }
 
@@ -485,10 +451,22 @@ class HiveNode implements HiveInterface
      * marshals a new instance of the origin.
      *
      * @param HiveInterface $origin
+     * @param string $token
      * @return HiveInterface
      */
-    protected function marshalNodeInstance(HiveInterface $origin): HiveInterface
+    protected function marshalNodeInstance(HiveInterface $origin, string $token): HiveInterface
     {
-        return new $origin($origin, $origin->getObservers());
+        return new $origin(new HiveIdentity($origin, $token), $origin->getObservers());
+    }
+
+    /**
+     * calls a closure.
+     *
+     * @param Closure $closure
+     * @return mixed
+     */
+    protected function executeClosure(Closure $closure)
+    {
+        return call_user_func($closure);
     }
 }

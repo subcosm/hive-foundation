@@ -10,6 +10,16 @@
     "require-dev": {
         "phpunit/phpunit": "~6.0"
     },
+    "autoload": {
+        "psr-4": {
+            "Subcosm\\Hive\\": "./src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Subcosm\\Tests\\Hive\\": "./tests"
+        }
+    },
     "license": "MIT",
     "authors": [
         {

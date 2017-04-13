@@ -12,7 +12,7 @@ General Status:
 
 Integrity and Usage:  
 ![Downloads](https://img.shields.io/github/downloads/subcosm/hive-foundation/total.svg)
-[![Latest](https://img.shields.io/packagist/v/subcosm/hive-foundation.svg)](https://packagist.org/subcosm/hive-foundation)
+[![Latest](https://img.shields.io/packagist/v/subcosm/hive-foundation.svg)](https://packagist.org/packages/subcosm/hive-foundation)
 
 ### What is a hive node?
 

@@ -110,6 +110,34 @@ receive the closure. The second set instruction will (automatically)
 create the node 'router' (not value-key), and the key `factory` at
 the `router`-node who will receive the closure.
 
+You can also access the root node from sub nodes:
+
+```php
+use Subcosm\Hive\Container\HiveNode;
+
+$root = new HiveNode();
+
+$root->set('logger', function() {
+    return new Monolog\Logger();
+});
+
+$routing = $root->node('router', true);
+
+$root->set('router', function() use ($routing) {
+    return $routing->get('factory')->factorize();
+});
+
+$routing->set('factory', function() use ($routing) {
+    return new RouteFactory($routing->get('~logger'));
+});
+
+$router = $root->get('router');
+
+// or
+
+$router = $routing->get('~router');
+```
+
 ### Is there any hook or event mechanism?
 
 Yes and no. You can not manipulate values from outside the hive

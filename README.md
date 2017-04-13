@@ -3,11 +3,16 @@ Hive Foundation is Container Components Foundation the delivers
 feature-rich hierarchical Key-Value node-based containers with
 an omni-present query interface.
 
+General Status:  
 [![Build Status](https://travis-ci.org/subcosm/hive-foundation.svg?branch=master)](https://travis-ci.org/subcosm/hive-foundation)
 [![codecov](https://codecov.io/gh/subcosm/hive-foundation/branch/master/graph/badge.svg)](https://codecov.io/gh/subcosm/hive-foundation)
 [![SensioLabsInsight](https://insight.sensiolabs.com/projects/1f9a21c7-7c8a-4c0e-9904-ed32081367f1/mini.png)](https://insight.sensiolabs.com/projects/1f9a21c7-7c8a-4c0e-9904-ed32081367f1)
-[![Code Climate](https://codeclimate.com/github/subcosm/hive-foundation.png)](https://codeclimate.com/github/subcosm/hive-foundation)
+[![Code Climate](https://img.shields.io/codeclimate/github/subcosm/hive-foundation.svg)](https://codeclimate.com/github/subcosm/hive-foundation)
 [![Gittip](http://img.shields.io/gittip/subcosm.svg)](https://gittip.com/subcosm/)
+
+Integrity and Usage:  
+![Downloads](https://img.shields.io/github/downloads/subcosm/hive-foundation/total.svg)
+[![Latest](https://img.shields.io/packagist/v/subcosm/hive-foundation.svg)](https://packagist.org/subcosm/hive-foundation)
 
 ### What is a hive node?
 

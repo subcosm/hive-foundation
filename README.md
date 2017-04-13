@@ -161,6 +161,46 @@ let the hive node create them for you. The inability to set nodes
 manually was decided because of avoiding conflicts of query divider
 and root definition tokens across node structures. Integrity first.
 
+### Whats about value validation?
+
+The `HiveNode` itself does not provided an interface to validate values.
+`DeclarativeHiveNode` provides an interface to declare a validator on a
+per item level or a default validator for all items and sub nodes.
+
+The provided callback receives the value to set as the first parameter
+and requires to return the value to be set to the hive node, otherwise the
+value will default to null.
+
+```php
+use Subcosm\Hive\Container\DeclarativeHiveNode;
+
+$node = new DeclarativeHiveNode();
+
+$node->entity('foo', function($value) {
+    if ( ! is_string($value) ) {
+        throw new InvalidArgumentException('Value must be string for foo');
+    }
+    
+    return $value;
+});
+
+$node->set('foo', 12345); // throws the exception
+$node->set('foo', '12345'); // sets the value
+```
+
+```php
+use Subcosm\Hive\Container\DeclarativeHiveNode;
+
+$node = new DeclarativeHiveNode();
+
+$node->defaultEntity(function($value) {
+    return is_array($value) || is_object($value) ? json_encode($value) : (string) $value;
+});
+
+$node->set('foo', 12345); // foo => '12345'
+$node->set('foo', ['foo' => 'bar']); // foo => {"foo":"bar"}
+```
+
 ### Package Stability and Maintainers
 
 This package is considered stable. The maintainers of this package are:

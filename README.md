@@ -6,6 +6,7 @@ an omni-present query interface.
 [![Build Status](https://travis-ci.org/subcosm/hive-foundation.svg?branch=master)](https://travis-ci.org/subcosm/hive-foundation)
 [![codecov](https://codecov.io/gh/subcosm/hive-foundation/branch/master/graph/badge.svg)](https://codecov.io/gh/subcosm/hive-foundation)
 [![Code Climate](https://codeclimate.com/github/subcosm/hive-foundation.png)](https://codeclimate.com/github/subcosm/hive-foundation)
+[![Gittip](http://img.shields.io/gittip/subcosm.svg)](https://gittip.com/subcosm/)
 
 ### What is a hive node?
 

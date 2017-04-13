@@ -96,4 +96,38 @@ class DeclarativeHiveNodeTest extends TestCase
         $node = new DeclarativeHiveNode();
         $node->entity('', function() {});
     }
+
+    /**
+     * @test
+     */
+    public function defaultDeclarationTest()
+    {
+       $node = new DeclarativeHiveNode();
+
+       $status = false;
+
+       $node->defaultEntity(function($value) use(&$status) {
+           if ( is_string($value) ) {
+               $status = true;
+           }
+
+           return $value;
+       });
+
+       $node->set('foo', 'bar');
+
+       $this->assertTrue($status);
+
+       $status = false;
+
+       $node->set('bar', 'baz');
+
+       $this->assertTrue($status);
+
+       $status = false;
+
+       $node->set('baz.foo.bar', 'boing');
+
+       $this->assertTrue($status);
+    }
 }

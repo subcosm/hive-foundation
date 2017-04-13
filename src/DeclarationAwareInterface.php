@@ -26,4 +26,11 @@ interface DeclarationAwareInterface
      * @return void
      */
     public function entity(string $entity, callable $callback): void;
+
+    /**
+     * declares the validation for all entities, when no specific validation was set.
+     *
+     * @param callable $callback
+     */
+    public function defaultEntity(callable $callback): void;
 }

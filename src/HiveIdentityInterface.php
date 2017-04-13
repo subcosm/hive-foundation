@@ -26,4 +26,11 @@ interface HiveIdentityInterface
      * @return string
      */
     public function getName(): string;
+
+    /**
+     * returns the default declaration value.
+     *
+     * @return callable|null
+     */
+    public function getDefaultDeclaration(): ? callable;
 }

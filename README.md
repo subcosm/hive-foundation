@@ -5,6 +5,7 @@ an omni-present query interface.
 
 [![Build Status](https://travis-ci.org/subcosm/hive-foundation.svg?branch=master)](https://travis-ci.org/subcosm/hive-foundation)
 [![codecov](https://codecov.io/gh/subcosm/hive-foundation/branch/master/graph/badge.svg)](https://codecov.io/gh/subcosm/hive-foundation)
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/1f9a21c7-7c8a-4c0e-9904-ed32081367f1/mini.png)](https://insight.sensiolabs.com/projects/1f9a21c7-7c8a-4c0e-9904-ed32081367f1)
 [![Code Climate](https://codeclimate.com/github/subcosm/hive-foundation.png)](https://codeclimate.com/github/subcosm/hive-foundation)
 [![Gittip](http://img.shields.io/gittip/subcosm.svg)](https://gittip.com/subcosm/)
 

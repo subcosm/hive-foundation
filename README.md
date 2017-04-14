@@ -14,6 +14,15 @@ Integrity and Usage:
 ![Downloads](https://img.shields.io/github/downloads/subcosm/hive-foundation/total.svg)
 [![Latest](https://img.shields.io/packagist/v/subcosm/hive-foundation.svg)](https://packagist.org/packages/subcosm/hive-foundation)
 
+### Dependencies
+
+- [psr/container](https://packagist.org/packages/psr/container)
+- [subcosm/observatory](https://packagist.org/packages/subcosm/observatory)
+- PHP 7.1 or higher.
+
+Optionally:  
+- `ext/spl` if do want to use `SplFileObject`'s for loaders.
+
 ### What is a hive node?
 
 A hive node implements one leaf of a hierarchy where you may set
@@ -199,6 +208,25 @@ $node->defaultEntity(function($value) {
 
 $node->set('foo', 12345); // foo => '12345'
 $node->set('foo', ['foo' => 'bar']); // foo => {"foo":"bar"}
+```
+
+### Import data to nodes with loaders
+
+```php
+use Subcosm\Hive\{
+    Container\HiveNode,
+    Loader\ArrayLoader
+};
+
+$node = new HiveNode();
+$loader = new ArrayLoader();
+$loader->load([
+    'foo.bar' => 'baz'
+]);
+
+$loader->injectInto($node);
+
+echo $node->get('foo.bar'); // => "baz"
 ```
 
 ### Package Stability and Maintainers

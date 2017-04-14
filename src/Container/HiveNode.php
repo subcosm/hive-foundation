@@ -169,6 +169,8 @@ class HiveNode implements HiveInterface
 
         if ( $query->tokenCount > 1 ) {
             $this->node($query->firstToken, true )->set($query->lastToken, $value);
+
+            return;
         }
 
         $this->values[$query->firstToken] = $this->cover($query->firstToken, $value);

@@ -1,0 +1,12 @@
+{
+  "foo": "bar",
+  "foo.bar.baz": "bar",
+  "foo.bar": {
+    "baz.boing": "test"
+  },
+  "!foo.baz": {
+    "baz": {
+      "boing": []
+    }
+  }
+}
